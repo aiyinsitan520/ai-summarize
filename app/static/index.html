@@ -3,27 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b1020">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0e1c">
+  <meta name="description" content="用你自己的模型 API，为视频生成语音转写、画面观察与融合总结。">
   <title>OmniVideo Insight · 音画联合总结</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <div class="backdrop" aria-hidden="true">
+    <span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span>
+  </div>
   <main class="shell">
     <header class="topbar">
-      <div class="brand"><span class="logo">▶</span><span>OmniVideo <strong>Insight</strong></span></div>
+      <div class="brand"><span class="logo" aria-hidden="true">▶</span><span>OmniVideo <strong>Insight</strong></span></div>
       <a href="/docs" class="docs">API 文档 ↗</a>
     </header>
 
     <section class="hero">
-      <div class="eyebrow"><span class="pulse"></span> 用你自己的 API 分析视频</div>
+      <p class="eyebrow"><span class="pulse"></span>用你自己的 API 分析视频</p>
       <h1>让视频的声音和画面，<br><em>一起说清楚。</em></h1>
-      <p>输入视频链接，获取语音转写、画面观察和融合总结。报告会区分原话、可见内容与模型归纳。</p>
-      <div class="platforms"><span>YouTube</span><span>抖音</span><span>TikTok</span><span>Bilibili</span><span>小红书</span></div>
+      <p class="hero-desc">输入视频链接，获取语音转写、画面观察和融合总结。报告会区分原话、可见内容与模型归纳。</p>
+      <ul class="platforms" aria-label="支持的平台">
+        <li>YouTube</li><li>抖音</li><li>TikTok</li><li>Bilibili</li><li>小红书</li>
+      </ul>
     </section>
 
     <section class="card workspace">
-      <div class="card-heading"><div><span class="step">01</span><h2>新建分析</h2></div><span class="hint">公开单视频链接</span></div>
-      <p id="provider-status" class="message" role="status">正在检查模型配置…</p>
+      <div class="card-heading">
+        <div class="card-title"><span class="step">01</span><h2>新建分析</h2></div>
+        <span class="hint">公开单视频链接</span>
+      </div>
+      <div id="provider-status" class="provider-status" role="status"></div>
       <form id="task-form">
         <label for="url">视频链接</label>
         <input id="url" name="url" type="url" placeholder="https://www.youtube.com/watch?v=..." required autocomplete="off">
@@ -31,31 +41,41 @@
           <div><label for="language">报告语言</label><select id="language" name="language"><option>中文</option><option>English</option></select></div>
           <div><label for="focus">特别关注 <small>可选</small></label><input id="focus" name="focus" maxlength="1000" placeholder="例如：关键数据、操作步骤、争议点"></div>
         </div>
-        <button type="submit" id="submit">开始分析 <span>↗</span></button>
+        <button type="submit" id="submit" class="btn-primary">开始分析 <span aria-hidden="true">↗</span></button>
         <p id="form-message" class="message" role="status"></p>
       </form>
     </section>
 
     <section class="card result-card" id="result-card" hidden>
-      <div class="card-heading"><div><span class="step">02</span><h2>分析结果</h2></div><span id="status-badge" class="badge">等待处理</span></div>
+      <div class="card-heading">
+        <div class="card-title"><span class="step">02</span><h2>分析结果</h2></div>
+        <span id="status-badge" class="badge" data-status="queued">等待处理</span>
+      </div>
       <h3 id="video-title"></h3>
       <p id="video-meta" class="meta"></p>
-      <div class="progress-track"><div id="progress-fill"></div></div>
-      <p id="stage" class="stage"></p>
+      <div id="progress-area" class="progress-area">
+        <div class="progress-track"><div id="progress-fill"></div></div>
+        <p id="stage" class="stage"></p>
+      </div>
       <div id="result-actions" class="result-actions" hidden>
-        <button id="download-report" type="button">下载音画报告</button>
+        <button id="download-report" type="button" class="btn-primary">下载音画报告</button>
+        <button id="copy-report" type="button">复制报告</button>
         <button id="toggle-transcript" type="button" aria-expanded="false" aria-controls="transcript">查看语音转写</button>
         <button id="download-transcript" type="button">下载语音转写</button>
       </div>
-      <pre id="report" class="report" hidden></pre>
-      <pre id="transcript" class="report" hidden></pre>
+      <article id="report" class="report md" hidden></article>
+      <div id="transcript" class="transcript" hidden></div>
       <p id="error" class="error" hidden></p>
     </section>
 
     <section class="history">
-      <div class="section-heading"><h2>最近任务</h2><button id="refresh" type="button">刷新</button></div>
-      <div id="task-list" class="task-list"><p class="empty">还没有任务</p></div>
+      <div class="section-heading">
+        <h2>最近任务</h2>
+        <button id="refresh" type="button">刷新</button>
+      </div>
+      <div id="task-list" class="task-list"></div>
     </section>
+
     <footer>视频和转写内容会发往你配置的模型 API。临时媒体文件处理完成后删除。</footer>
   </main>
   <script src="/app.js" defer></script>
