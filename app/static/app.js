@@ -2,6 +2,7 @@ const form = document.getElementById('task-form');
 const message = document.getElementById('form-message');
 const resultCard = document.getElementById('result-card');
 const taskList = document.getElementById('task-list');
+const providerStatus = document.getElementById('provider-status');
 let activeTask = null;
 let timer = null;
 
@@ -88,4 +89,9 @@ form.addEventListener('submit', async (event) => {
   finally { submit.disabled = false; }
 });
 document.getElementById('refresh').addEventListener('click', loadHistory);
+request('/api/health').then((health) => {
+  const ai = `${health.ai_provider} ${health.ai_key_configured ? '已配置' : '缺少密钥'}`;
+  const asr = `${health.asr_provider} ${health.asr_key_configured ? '已配置' : '缺少密钥'}`;
+  providerStatus.textContent = `画面与总结：${ai} · 语音转写：${asr}`;
+}).catch(() => { providerStatus.textContent = '无法读取模型配置'; });
 loadHistory();

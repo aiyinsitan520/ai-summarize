@@ -32,6 +32,22 @@ def _request(client: httpx.Client, url: str, headers: dict, **kwargs) -> dict:
 
 def transcribe(path: Path, settings: Settings) -> str:
     headers = {"Authorization": f"Bearer {settings.transcription_key}"}
+    if settings.asr_provider == "qwen":
+        encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+        if len(encoded) > 10_000_000:
+            raise ProviderError("千问语音片段超过 10 MB，请降低切片时长或音频码率")
+        with httpx.Client(timeout=300) as client:
+            data = _request(
+                client,
+                settings.transcription_base_url + "/chat/completions",
+                headers,
+                json={"model": settings.transcription_model, "messages": [{
+                    "role": "user", "content": [{"type": "input_audio", "input_audio": {
+                        "data": f"data:audio/mpeg;base64,{encoded}",
+                    }}],
+                }]},
+            )
+        return _chat_content(data, "转写")
     with httpx.Client(timeout=300) as client, path.open("rb") as audio:
         data = _request(
             client,
@@ -55,16 +71,20 @@ def chat(messages: list[dict], model: str, settings: Settings) -> str:
             headers,
             json={"model": model, "messages": messages},
         )
+    return _chat_content(data, "对话")
+
+
+def _chat_content(data: dict, operation: str) -> str:
     try:
         content = data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
-        raise ProviderError("对话 API 未返回可读内容") from exc
+        raise ProviderError(f"{operation} API 未返回可读内容") from exc
     if isinstance(content, list):
         content = "\n".join(
             item.get("text", "") for item in content if isinstance(item, dict)
         )
     if not isinstance(content, str) or not content.strip():
-        raise ProviderError("对话 API 返回空内容")
+        raise ProviderError(f"{operation} API 返回空内容")
     return content.strip()
 
 

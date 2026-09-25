@@ -23,11 +23,29 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
 cp .env.example .env
-# 编辑 .env，至少填写 OPENAI_API_KEY 以及所用 API 支持的模型名称
+# 编辑 .env，选择服务商并填写对应密钥
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-打开 <http://127.0.0.1:8000>；API 文档位于 <http://127.0.0.1:8000/docs>。默认模型名适用于 OpenAI API；换用兼容服务时，请设置 `OPENAI_BASE_URL`、`TRANSCRIPTION_MODEL`、`VISION_MODEL` 和 `SUMMARY_MODEL`。语音接口需支持 `POST /audio/transcriptions`，视觉与总结接口需支持 `POST /chat/completions` 和图片输入。转写服务不同于主服务时，可单独设置 `TRANSCRIPTION_BASE_URL` 与 `TRANSCRIPTION_API_KEY`。
+打开 <http://127.0.0.1:8000>；API 文档位于 <http://127.0.0.1:8000/docs>。在 `.env` 中设置 `AI_PROVIDER` 为 `openai`、`deepseek`、`qwen` 或 `kimi`，并填写对应的 `OPENAI_API_KEY`、`DEEPSEEK_API_KEY`、`DASHSCOPE_API_KEY` 或 `KIMI_API_KEY`。页面会显示画面与总结、语音转写各自的配置状态。更换 `.env` 后需重启服务。
+
+语音转写单独由 `ASR_PROVIDER` 控制，只支持 `openai` 或 `qwen`。选择千问作为主服务商时，默认也用千问转写，只需一把百炼密钥；选择 DeepSeek 或 Kimi 时，另配 OpenAI 密钥用于转写，或设置 `ASR_PROVIDER=qwen` 并填写百炼密钥。千问使用 `qwen3-asr-flash` 的 Chat Completions 音频输入，音频会切成约 4 分钟一段；OpenAI 使用 `/audio/transcriptions`，约 10 分钟一段。可在 `.env.example` 查看接口地址和模型覆盖项。
+
+示例：只用千问：
+
+```dotenv
+AI_PROVIDER=qwen
+DASHSCOPE_API_KEY=你的百炼密钥
+```
+
+示例：DeepSeek 负责画面与总结，千问负责转写：
+
+```dotenv
+AI_PROVIDER=deepseek
+ASR_PROVIDER=qwen
+DEEPSEEK_API_KEY=你的DeepSeek密钥
+DASHSCOPE_API_KEY=你的百炼密钥
+```
 
 `.env` 已加入 Git 忽略。不要把 API 密钥写在网页里。运行中会把音频与抽帧发送至配置的服务商；数据库仍会保存转写文本和最终报告。默认只监听本机地址；若要开放公网，需要自行配置鉴权、HTTPS 和访问限流。
 
@@ -56,7 +74,7 @@ docker compose up --build
 
 ## 限制与费用
 
-- 默认最长 120 分钟、下载体积上限 1 GiB、最多 24 帧、音频 10 分钟一段。通过 `.env` 调整。
+- 默认最长 120 分钟、下载体积上限 1 GiB、最多 24 帧；OpenAI 音频约 10 分钟一段、千问音频约 4 分钟一段。通过 `.env` 调整其他限制。
 - 抽帧可能遗漏快速变化的场景；音频片段起始时间不能当作逐句时间戳。
 - 平台下载能力取决于公开访问、地区、登录状态和 `yt-dlp` 版本；对抖音等平台不保证每条链接都可用。
 - 处理费用由你选择的 API 服务商收取，长视频会产生多次转写和视觉请求。

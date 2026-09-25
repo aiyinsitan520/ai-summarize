@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from .config import Settings
+from .config import PROVIDERS, Settings
 from .media import MediaError
 from .pipeline import analyze
 from .provider import ProviderError
@@ -107,6 +107,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {
             "status": "ok",
             "api_key_configured": bool(settings.api_key and settings.transcription_key),
+            "ai_provider": PROVIDERS[settings.ai_provider][0],
+            "asr_provider": PROVIDERS[settings.asr_provider][0],
+            "ai_key_configured": bool(settings.api_key),
+            "asr_key_configured": bool(settings.transcription_key),
         }
 
     @app.post("/api/tasks", status_code=202)
@@ -115,8 +119,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             platform, url = validate_video_url(request.url)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
-        if not settings.api_key or not settings.transcription_key:
-            raise HTTPException(status_code=503, detail="请先配置 API 密钥")
+        try:
+            settings.validate_for_run()
+        except ValueError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
         task = store.create(url, platform, request.language, request.focus)
         runner.submit(task["id"])
         return task
