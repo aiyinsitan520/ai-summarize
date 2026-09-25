@@ -4,7 +4,23 @@ const resultCard = document.getElementById('result-card');
 const taskList = document.getElementById('task-list');
 const providerStatus = document.getElementById('provider-status');
 let activeTask = null;
+let activeResult = null;
 let timer = null;
+
+function transcriptText(result) {
+  return (result?.transcript || [])
+    .map((segment) => `[${segment.start}]\n${segment.text}`)
+    .join('\n\n');
+}
+
+function downloadText(filename, content, type) {
+  const url = URL.createObjectURL(new Blob([content], {type}));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 async function request(path, options = {}) {
   const response = await fetch(path, options);
@@ -14,7 +30,13 @@ async function request(path, options = {}) {
 }
 
 function showTask(task) {
+  if (activeTask !== task.id) {
+    document.getElementById('transcript').hidden = true;
+    document.getElementById('toggle-transcript').setAttribute('aria-expanded', 'false');
+    document.getElementById('toggle-transcript').textContent = '查看语音转写';
+  }
   activeTask = task.id;
+  activeResult = task.result;
   resultCard.hidden = false;
   document.getElementById('video-title').textContent = task.result?.title || task.url;
   document.getElementById('video-meta').textContent = task.result
@@ -26,6 +48,8 @@ function showTask(task) {
   const report = document.getElementById('report');
   report.hidden = !task.result;
   report.textContent = task.result?.report || '';
+  document.getElementById('result-actions').hidden = !task.result;
+  document.getElementById('transcript').textContent = transcriptText(task.result) || '没有可用语音转写';
   const error = document.getElementById('error');
   error.hidden = !task.error;
   error.textContent = task.error || '';
@@ -89,6 +113,19 @@ form.addEventListener('submit', async (event) => {
   finally { submit.disabled = false; }
 });
 document.getElementById('refresh').addEventListener('click', loadHistory);
+document.getElementById('toggle-transcript').addEventListener('click', () => {
+  const transcript = document.getElementById('transcript');
+  transcript.hidden = !transcript.hidden;
+  const button = document.getElementById('toggle-transcript');
+  button.setAttribute('aria-expanded', String(!transcript.hidden));
+  button.textContent = transcript.hidden ? '查看语音转写' : '收起语音转写';
+});
+document.getElementById('download-report').addEventListener('click', () => {
+  if (activeResult) downloadText(`${activeTask}-report.md`, activeResult.report, 'text/markdown;charset=utf-8');
+});
+document.getElementById('download-transcript').addEventListener('click', () => {
+  if (activeResult) downloadText(`${activeTask}-transcript.txt`, transcriptText(activeResult), 'text/plain;charset=utf-8');
+});
 request('/api/health').then((health) => {
   const ai = `${health.ai_provider} ${health.ai_key_configured ? '已配置' : '缺少密钥'}`;
   const asr = `${health.asr_provider} ${health.asr_key_configured ? '已配置' : '缺少密钥'}`;
