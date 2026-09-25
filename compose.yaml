@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      DATA_DIR: /srv/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - omni_data:/srv/data
+    restart: unless-stopped
+
+volumes:
+  omni_data:
