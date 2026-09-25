@@ -1,5 +1,7 @@
 # OmniVideo Insight
 
+> 后续开发者（包括 WorkBuddy）：先阅读 [项目交接文档](docs/WORKBUDDY_HANDOFF.md) 和 [AGENTS.md](AGENTS.md)。
+
 用自己的 OpenAI 兼容 API 为 YouTube、抖音、TikTok、Bilibili 和小红书的**单个视频**生成音画联合总结。服务下载公开视频，把音频分段转写、均匀抽取画面，再分别整理证据并生成 Markdown 报告。任务和结果保存在 SQLite；临时媒体处理结束后删除。
 
 ## 原理与参考项目的关系
@@ -28,6 +30,8 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 打开 <http://127.0.0.1:8000>；API 文档位于 <http://127.0.0.1:8000/docs>。在 `.env` 中设置 `AI_PROVIDER` 为 `openai`、`deepseek`、`qwen` 或 `kimi`，并填写对应的 `OPENAI_API_KEY`、`DEEPSEEK_API_KEY`、`DASHSCOPE_API_KEY` 或 `KIMI_API_KEY`。页面会显示画面与总结、语音转写各自的配置状态。更换 `.env` 后需重启服务。
+
+报告完成后可在页面展开语音转写，并分别下载 Markdown 报告和纯文本转写。任务结果也保存在本机 SQLite 数据库中。
 
 语音转写单独由 `ASR_PROVIDER` 控制，只支持 `openai` 或 `qwen`。选择千问作为主服务商时，默认也用千问转写，只需一把百炼密钥；选择 DeepSeek 或 Kimi 时，另配 OpenAI 密钥用于转写，或设置 `ASR_PROVIDER=qwen` 并填写百炼密钥。千问使用 `qwen3-asr-flash` 的 Chat Completions 音频输入，音频会切成约 4 分钟一段；OpenAI 使用 `/audio/transcriptions`，约 10 分钟一段。可在 `.env.example` 查看接口地址和模型覆盖项。
 

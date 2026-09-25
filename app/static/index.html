@@ -42,7 +42,13 @@
       <p id="video-meta" class="meta"></p>
       <div class="progress-track"><div id="progress-fill"></div></div>
       <p id="stage" class="stage"></p>
+      <div id="result-actions" class="result-actions" hidden>
+        <button id="download-report" type="button">下载音画报告</button>
+        <button id="toggle-transcript" type="button" aria-expanded="false" aria-controls="transcript">查看语音转写</button>
+        <button id="download-transcript" type="button">下载语音转写</button>
+      </div>
       <pre id="report" class="report" hidden></pre>
+      <pre id="transcript" class="report" hidden></pre>
       <p id="error" class="error" hidden></p>
     </section>
 
