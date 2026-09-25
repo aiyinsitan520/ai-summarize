@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <title>OmniVideo Insight · 音画联合总结</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="logo">▶</span><span>OmniVideo <strong>Insight</strong></span></div>
+      <a href="/docs" class="docs">API 文档 ↗</a>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow"><span class="pulse"></span> 用你自己的 API 分析视频</div>
+      <h1>让视频的声音和画面，<br><em>一起说清楚。</em></h1>
+      <p>输入视频链接，获取语音转写、画面观察和融合总结。报告会区分原话、可见内容与模型归纳。</p>
+      <div class="platforms"><span>YouTube</span><span>抖音</span><span>TikTok</span><span>Bilibili</span><span>小红书</span></div>
+    </section>
+
+    <section class="card workspace">
+      <div class="card-heading"><div><span class="step">01</span><h2>新建分析</h2></div><span class="hint">公开单视频链接</span></div>
+      <form id="task-form">
+        <label for="url">视频链接</label>
+        <input id="url" name="url" type="url" placeholder="https://www.youtube.com/watch?v=..." required autocomplete="off">
+        <div class="fields">
+          <div><label for="language">报告语言</label><select id="language" name="language"><option>中文</option><option>English</option></select></div>
+          <div><label for="focus">特别关注 <small>可选</small></label><input id="focus" name="focus" maxlength="1000" placeholder="例如：关键数据、操作步骤、争议点"></div>
+        </div>
+        <button type="submit" id="submit">开始分析 <span>↗</span></button>
+        <p id="form-message" class="message" role="status"></p>
+      </form>
+    </section>
+
+    <section class="card result-card" id="result-card" hidden>
+      <div class="card-heading"><div><span class="step">02</span><h2>分析结果</h2></div><span id="status-badge" class="badge">等待处理</span></div>
+      <h3 id="video-title"></h3>
+      <p id="video-meta" class="meta"></p>
+      <div class="progress-track"><div id="progress-fill"></div></div>
+      <p id="stage" class="stage"></p>
+      <pre id="report" class="report" hidden></pre>
+      <p id="error" class="error" hidden></p>
+    </section>
+
+    <section class="history">
+      <div class="section-heading"><h2>最近任务</h2><button id="refresh" type="button">刷新</button></div>
+      <div id="task-list" class="task-list"><p class="empty">还没有任务</p></div>
+    </section>
+    <footer>视频和转写内容会发往你配置的模型 API。临时媒体文件处理完成后删除。</footer>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>
