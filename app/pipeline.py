@@ -30,7 +30,8 @@ def analyze(
     progress("下载视频", 5)
     media = download_video(url, folder, settings)
     progress("提取音频与画面", 20)
-    audio = extract_audio_chunks(media, folder / "audio")
+    chunk_seconds = 240 if settings.asr_provider == "qwen" else 600
+    audio = extract_audio_chunks(media, folder / "audio", chunk_seconds=chunk_seconds)
     frames = extract_frames(media, folder / "frames", settings)
     if not audio and not frames:
         raise ValueError("视频没有可分析的音轨或画面")
@@ -54,7 +55,7 @@ def analyze(
                 settings.summary_model,
                 settings,
             )
-            audio_notes.append(f"[{timestamp(second)} 起，约 10 分钟]\n{note}")
+            audio_notes.append(f"[{timestamp(second)} 起，约 {chunk_seconds // 60} 分钟]\n{note}")
 
     visual_notes: list[str] = []
     for start in range(0, len(frames), 4):

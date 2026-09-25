@@ -6,6 +6,14 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+PROVIDERS = {
+    "openai": ("OpenAI", "https://api.openai.com/v1", "gpt-4.1-mini", "gpt-4.1-mini", "OPENAI_API_KEY"),
+    "deepseek": ("DeepSeek", "https://api.deepseek.com", "deepseek-flash", "deepseek-flash", "DEEPSEEK_API_KEY"),
+    "qwen": ("千问（阿里云百炼）", "https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen3-vl-plus", "qwen-plus", "DASHSCOPE_API_KEY"),
+    "kimi": ("Kimi（月之暗面）", "https://api.moonshot.cn/v1", "kimi-k2.6", "kimi-k2.6", "KIMI_API_KEY"),
+}
+ASR_PROVIDERS = {"openai", "qwen"}
+
 
 def _positive_int(name: str, default: int) -> int:
     value = int(os.getenv(name, str(default)))
@@ -16,6 +24,8 @@ def _positive_int(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class Settings:
+    ai_provider: str
+    asr_provider: str
     api_key: str
     base_url: str
     transcription_key: str
@@ -34,18 +44,39 @@ class Settings:
     @classmethod
     def from_env(cls) -> Settings:
         root = Path(os.getenv("DATA_DIR", "./data")).expanduser().resolve()
-        base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+        ai_provider = os.getenv("AI_PROVIDER", "openai").strip().lower()
+        if ai_provider not in PROVIDERS:
+            raise ValueError(f"AI_PROVIDER 不支持 {ai_provider}；可选 openai、deepseek、qwen、kimi")
+        asr_provider = os.getenv("ASR_PROVIDER", "qwen" if ai_provider == "qwen" else "openai").strip().lower()
+        if asr_provider not in ASR_PROVIDERS:
+            raise ValueError("ASR_PROVIDER 只支持 openai 或 qwen")
+        _, default_url, vision_model, summary_model, key_name = PROVIDERS[ai_provider]
+        base_url = os.getenv(f"{ai_provider.upper()}_BASE_URL", default_url).rstrip("/")
+        asr_url = (
+            os.getenv("TRANSCRIPTION_BASE_URL", "").rstrip("/") or
+            (base_url if asr_provider == ai_provider else os.getenv(
+                f"{asr_provider.upper()}_BASE_URL", PROVIDERS[asr_provider][1]
+            ).rstrip("/"))
+        )
         cookie = os.getenv("COOKIES_FILE", "").strip()
         return cls(
-            api_key=os.getenv("OPENAI_API_KEY", "").strip(),
+            ai_provider=ai_provider,
+            asr_provider=asr_provider,
+            api_key=os.getenv(key_name, "").strip(),
             base_url=base_url,
             transcription_key=os.getenv("TRANSCRIPTION_API_KEY", "").strip()
-            or os.getenv("OPENAI_API_KEY", "").strip(),
-            transcription_base_url=os.getenv("TRANSCRIPTION_BASE_URL", "").rstrip("/")
-            or base_url,
-            transcription_model=os.getenv("TRANSCRIPTION_MODEL", "whisper-1"),
-            vision_model=os.getenv("VISION_MODEL", "gpt-4.1-mini"),
-            summary_model=os.getenv("SUMMARY_MODEL", "gpt-4.1-mini"),
+            or os.getenv(PROVIDERS[asr_provider][4], "").strip(),
+            transcription_base_url=asr_url,
+            transcription_model=os.getenv(
+                "QWEN_ASR_MODEL" if asr_provider == "qwen" else "TRANSCRIPTION_MODEL",
+                "qwen3-asr-flash" if asr_provider == "qwen" else "whisper-1",
+            ),
+            vision_model=os.getenv(
+                "VISION_MODEL" if ai_provider == "openai" else f"{ai_provider.upper()}_VISION_MODEL", vision_model
+            ),
+            summary_model=os.getenv(
+                "SUMMARY_MODEL" if ai_provider == "openai" else f"{ai_provider.upper()}_SUMMARY_MODEL", summary_model
+            ),
             data_dir=root,
             max_video_minutes=_positive_int("MAX_VIDEO_MINUTES", 120),
             max_download_mb=_positive_int("MAX_DOWNLOAD_MB", 1024),
@@ -56,7 +87,9 @@ class Settings:
         )
 
     def validate_for_run(self) -> None:
-        if not self.api_key or not self.transcription_key:
-            raise ValueError("请先在 .env 中配置 OPENAI_API_KEY（或单独配置转写 API 密钥）")
+        if not self.api_key:
+            raise ValueError(f"请先在 .env 中配置 {PROVIDERS[self.ai_provider][4]}")
+        if not self.transcription_key:
+            raise ValueError(f"请先在 .env 中配置 {PROVIDERS[self.asr_provider][4]}（语音转写）")
         if self.cookies_file and not self.cookies_file.is_file():
             raise ValueError("COOKIES_FILE 指向的文件不存在")

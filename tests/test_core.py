@@ -40,6 +40,47 @@ def test_frame_sampling_covers_long_video():
     assert times[-1] > 7000
 
 
+@pytest.mark.parametrize("provider,key_name,vision,summary", [
+    ("deepseek", "DEEPSEEK_API_KEY", "deepseek-flash", "deepseek-flash"),
+    ("qwen", "DASHSCOPE_API_KEY", "qwen3-vl-plus", "qwen-plus"),
+    ("kimi", "KIMI_API_KEY", "kimi-k2.6", "kimi-k2.6"),
+])
+def test_provider_presets(monkeypatch, provider, key_name, vision, summary):
+    monkeypatch.setenv("AI_PROVIDER", provider)
+    monkeypatch.delenv("ASR_PROVIDER", raising=False)
+    monkeypatch.setenv(key_name, "selected-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "speech-key")
+    settings = Settings.from_env()
+    assert settings.api_key == "selected-key"
+    assert settings.vision_model == vision
+    assert settings.summary_model == summary
+    assert settings.asr_provider == ("qwen" if provider == "qwen" else "openai")
+    settings.validate_for_run()
+
+
+def test_qwen_asr_sends_audio_to_chat_completions(tmp_path: Path, monkeypatch):
+    from app import provider
+
+    monkeypatch.setenv("AI_PROVIDER", "qwen")
+    monkeypatch.delenv("ASR_PROVIDER", raising=False)
+    monkeypatch.setenv("DASHSCOPE_API_KEY", "test-key")
+    settings = Settings.from_env()
+    audio = tmp_path / "audio.mp3"
+    audio.write_bytes(b"audio bytes")
+
+    def fake_request(client, url, headers, **kwargs):
+        assert url.endswith("/chat/completions")
+        assert headers["Authorization"] == "Bearer test-key"
+        assert kwargs["json"]["model"] == "qwen3-asr-flash"
+        assert kwargs["json"]["messages"][0]["content"][0]["input_audio"]["data"].startswith(
+            "data:audio/mpeg;base64,"
+        )
+        return {"choices": [{"message": {"content": "转写内容"}}]}
+
+    monkeypatch.setattr(provider, "_request", fake_request)
+    assert provider.transcribe(audio, settings) == "转写内容"
+
+
 def test_task_store_recovers_running_tasks(tmp_path: Path):
     store = TaskStore(tmp_path / "tasks.db")
     task = store.create("https://youtu.be/abc", "youtube", "中文", "")
