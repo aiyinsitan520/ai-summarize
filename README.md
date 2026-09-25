@@ -52,7 +52,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-镜像包含 Node.js、FFmpeg 和 FFprobe。Compose 只将端口映射到 `127.0.0.1:8000`。若需要 cookies，请在宿主机准备 Netscape 格式文件，挂载到容器并将 `COOKIES_FILE` 指向容器内路径。
+镜像包含 Node.js、FFmpeg 和 FFprobe。Compose 只将端口映射到 `127.0.0.1:8000`，使用 Docker 命名卷保存任务数据库。若需要 cookies，请在宿主机准备 Netscape 格式文件，挂载到容器并将 `COOKIES_FILE` 指向容器内路径。
 
 ## 限制与费用
 
